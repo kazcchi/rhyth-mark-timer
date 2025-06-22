@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,21 +12,32 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../App';
 
 import NumberPicker from '../components/NumberPicker';
+import { useSettings } from '../utils/SettingsContext';
 
 type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
 
 export default function SettingScreen() {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
+  const { settings, updateSettings } = useSettings();
 
-  // 設定値の状態管理
-  const [workMinutes, setWorkMinutes] = useState(0);
-  const [workSeconds, setWorkSeconds] = useState(30);
-  const [restMinutes, setRestMinutes] = useState(0);
-  const [restSeconds, setRestSeconds] = useState(10);
-  const [rounds, setRounds] = useState(4);
+  // ローカル設定値の状態管理
+  const [workMinutes, setWorkMinutes] = useState(settings.workMinutes);
+  const [workSeconds, setWorkSeconds] = useState(settings.workSeconds);
+  const [restMinutes, setRestMinutes] = useState(settings.restMinutes);
+  const [restSeconds, setRestSeconds] = useState(settings.restSeconds);
+  const [rounds, setRounds] = useState(settings.rounds);
+
+  // 現在の設定値をローカル状態に反映
+  useEffect(() => {
+    setWorkMinutes(settings.workMinutes);
+    setWorkSeconds(settings.workSeconds);
+    setRestMinutes(settings.restMinutes);
+    setRestSeconds(settings.restSeconds);
+    setRounds(settings.rounds);
+  }, [settings]);
 
   // 設定保存
-  const handleSaveAndBack = () => {
+  const handleSaveAndBack = async () => {
     // バリデーション
     const workTotal = workMinutes * 60 + workSeconds;
     const restTotal = restMinutes * 60 + restSeconds;
@@ -41,12 +52,22 @@ export default function SettingScreen() {
       return;
     }
 
-    // TODO: 設定をAsyncStorageに保存
-    // TODO: TimerScreenに設定を反映
+    try {
+      // 設定をContextに保存
+      await updateSettings({
+        workMinutes,
+        workSeconds,
+        restMinutes,
+        restSeconds,
+        rounds,
+      });
 
-    Alert.alert('Settings Saved', 'Timer settings have been updated!', [
-      { text: 'OK', onPress: () => navigation.goBack() }
-    ]);
+      Alert.alert('Settings Saved', 'Timer settings have been updated!', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save settings. Please try again.');
+    }
   };
 
   return (

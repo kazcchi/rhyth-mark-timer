@@ -3,19 +3,30 @@ import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../App';
+import { useSettings } from '../utils/SettingsContext';
 
 type TimerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timer'>;
 
 export default function TimerScreen() {
   const navigation = useNavigation<TimerScreenNavigationProp>();
+  const { settings } = useSettings();
   
-  const [timeRemaining, setTimeRemaining] = useState(30);
+  const [timeRemaining, setTimeRemaining] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [phase, setPhase] = useState('work'); // 'work' or 'rest'
+  const [phase, setPhase] = useState<'work' | 'rest'>('work');
   const [currentRound, setCurrentRound] = useState(1);
-  const [totalRounds] = useState(4); // 後でSettings画面で変更可能にする
   const [alarmEnabled, setAlarmEnabled] = useState(true);
+
+  // 設定変更時にタイマーをリセット
+  useEffect(() => {
+    const workTime = settings.workMinutes * 60 + settings.workSeconds;
+    setTimeRemaining(workTime);
+    setPhase('work');
+    setCurrentRound(1);
+    setIsRunning(false);
+    setIsPaused(false);
+  }, [settings]);
 
   // タイマーロジック
   useEffect(() => {
@@ -25,31 +36,34 @@ export default function TimerScreen() {
       interval = setInterval(() => {
         setTimeRemaining(time => time - 1);
       }, 1000);
-    } else if (timeRemaining === 0) {
+    } else if (timeRemaining === 0 && isRunning) {
       // フェーズ切り替え
       if (phase === 'work') {
+        const restTime = settings.restMinutes * 60 + settings.restSeconds;
         setPhase('rest');
-        setTimeRemaining(10); // 10秒休憩
+        setTimeRemaining(restTime);
       } else {
         // rest終了
-        if (currentRound >= totalRounds) {
+        if (currentRound >= settings.rounds) {
           // 全ラウンド終了
           setIsRunning(false);
           setIsPaused(false);
           setPhase('work');
           setCurrentRound(1);
-          setTimeRemaining(30);
+          const workTime = settings.workMinutes * 60 + settings.workSeconds;
+          setTimeRemaining(workTime);
         } else {
           // 次のラウンド
           setCurrentRound(prev => prev + 1);
           setPhase('work');
-          setTimeRemaining(30); // 30秒作業
+          const workTime = settings.workMinutes * 60 + settings.workSeconds;
+          setTimeRemaining(workTime);
         }
       }
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, isPaused, timeRemaining, phase, currentRound, totalRounds]);
+  }, [isRunning, isPaused, timeRemaining, phase, currentRound, settings]);
 
   // 時間フォーマット
   const formatTime = (seconds: number) => {
@@ -77,7 +91,8 @@ export default function TimerScreen() {
     setIsPaused(false);
     setPhase('work');
     setCurrentRound(1);
-    setTimeRemaining(30);
+    const workTime = settings.workMinutes * 60 + settings.workSeconds;
+    setTimeRemaining(workTime);
   };
 
   const handleSettings = () => {
@@ -117,13 +132,13 @@ export default function TimerScreen() {
           {formatTime(timeRemaining)}
         </Text>
         <Text style={[styles.phase, { color: getTimerColor() }]}>
-          {phase === 'work' ? 'WORK' : phase === 'rest' ? 'REST' : 'READY'}
+          {phase === 'work' ? 'WORK' : 'REST'}
         </Text>
       </View>
 
       {/* Round Display */}
       <Text style={styles.roundText}>
-        Round {currentRound} / {totalRounds}
+        Round {currentRound} / {settings.rounds}
       </Text>
 
       {/* Main Controls */}
@@ -172,7 +187,7 @@ export default function TimerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F2', // Light gray background
+    backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -230,13 +245,13 @@ const styles = StyleSheet.create({
     flex: 0.48,
   },
   resetButton: {
-    backgroundColor: '#34C759', // Green
+    backgroundColor: '#34C759',
   },
   settingsButton: {
-    backgroundColor: '#000000', // Black
+    backgroundColor: '#000000',
   },
   alarmButton: {
-    backgroundColor: '#8E44AD', // Purple
+    backgroundColor: '#8E44AD',
   },
   buttonText: {
     color: '#FFFFFF',
