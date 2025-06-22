@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../App';
 import { useSettings } from '../utils/SettingsContext';
+import { playBeepShort, playBeepLong, initializeAudio } from '../utils/AudioPlayer';
 
 type TimerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timer'>;
 
@@ -17,6 +18,11 @@ export default function TimerScreen() {
   const [phase, setPhase] = useState<'work' | 'rest'>('work');
   const [currentRound, setCurrentRound] = useState(1);
   const [alarmEnabled, setAlarmEnabled] = useState(true);
+
+  // 音声システム初期化
+  useEffect(() => {
+    initializeAudio();
+  }, []);
 
   // 設定変更時にタイマーをリセット
   useEffect(() => {
@@ -38,32 +44,47 @@ export default function TimerScreen() {
       }, 1000);
     } else if (timeRemaining === 0 && isRunning) {
       // フェーズ切り替え
-      if (phase === 'work') {
-        const restTime = settings.restMinutes * 60 + settings.restSeconds;
-        setPhase('rest');
-        setTimeRemaining(restTime);
-      } else {
-        // rest終了
-        if (currentRound >= settings.rounds) {
-          // 全ラウンド終了
-          setIsRunning(false);
-          setIsPaused(false);
-          setPhase('work');
-          setCurrentRound(1);
-          const workTime = settings.workMinutes * 60 + settings.workSeconds;
-          setTimeRemaining(workTime);
-        } else {
-          // 次のラウンド
-          setCurrentRound(prev => prev + 1);
-          setPhase('work');
-          const workTime = settings.workMinutes * 60 + settings.workSeconds;
-          setTimeRemaining(workTime);
-        }
-      }
+      handlePhaseComplete();
     }
 
     return () => clearInterval(interval);
   }, [isRunning, isPaused, timeRemaining, phase, currentRound, settings]);
+
+  // フェーズ完了時の処理
+  const handlePhaseComplete = async () => {
+    if (phase === 'work') {
+      // Work → Rest
+      if (alarmEnabled) {
+        await playBeepShort(); // 「ピピ」音
+      }
+      const restTime = settings.restMinutes * 60 + settings.restSeconds;
+      setPhase('rest');
+      setTimeRemaining(restTime);
+    } else {
+      // Rest → 次のラウンドまたは終了
+      if (currentRound >= settings.rounds) {
+        // 全ラウンド終了
+        if (alarmEnabled) {
+          await playBeepLong(); // 「ピー」音
+        }
+        setIsRunning(false);
+        setIsPaused(false);
+        setPhase('work');
+        setCurrentRound(1);
+        const workTime = settings.workMinutes * 60 + settings.workSeconds;
+        setTimeRemaining(workTime);
+      } else {
+        // 次のラウンド
+        if (alarmEnabled) {
+          await playBeepShort(); // 「ピピ」音
+        }
+        setCurrentRound(prev => prev + 1);
+        setPhase('work');
+        const workTime = settings.workMinutes * 60 + settings.workSeconds;
+        setTimeRemaining(workTime);
+      }
+    }
+  };
 
   // 時間フォーマット
   const formatTime = (seconds: number) => {
