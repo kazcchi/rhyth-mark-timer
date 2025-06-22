@@ -3,38 +3,20 @@
     "name": "RhythMark",
     "slug": "rhythmark",
     "version": "1.0.0",
-    "sdkVersion": "53.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": true,
-      "backgroundModes": [
-        "background-processing",
-        "background-fetch",
-        "background-processing",
-        "background-fetch"
-      ],
-      "bundleIdentifier": "com.kazcchi.rhythmark",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1F2937"
     },
     "android": {
-      "permissions": [
-        "WAKE_LOCK",
-        "FOREGROUND_SERVICE",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.WAKE_LOCK"
-      ],
       "package": "com.kazcchi.rhythmark"
     },
     "plugins": [
-      "expo-notifications",
-      "expo-task-manager",
-      "expo-background-fetch"
+      "expo-keep-awake",
+      "expo-haptics",
+      "expo-av"
     ],
     "extra": {
       "eas": {
