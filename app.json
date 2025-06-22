@@ -13,19 +13,33 @@
       "supportsTablet": true,
       "backgroundModes": [
         "background-processing",
+        "background-fetch",
+        "background-processing",
         "background-fetch"
-      ]
+      ],
+      "bundleIdentifier": "com.kazcchi.rhythmark",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "permissions": [
         "WAKE_LOCK",
-        "FOREGROUND_SERVICE"
-      ]
+        "FOREGROUND_SERVICE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.WAKE_LOCK"
+      ],
+      "package": "com.kazcchi.rhythmark"
     },
     "plugins": [
       "expo-notifications",
       "expo-task-manager",
       "expo-background-fetch"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "89d89b34-ad48-4083-993a-1e03c6678818"
+      }
+    }
   }
 }
