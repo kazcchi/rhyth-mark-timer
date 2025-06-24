@@ -14,8 +14,6 @@
       "package": "com.kazcchi.rhythmark"
     },
     "plugins": [
-      "expo-keep-awake",
-      "expo-haptics",
       "expo-av"
     ],
     "extra": {
