@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { playBeepShort, playBeepLong, initializeAudio } from '../utils/AudioPlayer';
+import { playBeepDouble, playBeepLong, initializeAudio } from '../utils/AudioPlayer';
 
 export interface TimerSettings {
   workTime: number;
@@ -105,32 +105,37 @@ const TimerScreen: React.FC<TimerScreenProps> = ({ settings, onBack }) => {
     };
   }, [timerState]);
 
-  // フェーズ完了処理（バイブレーション対応）
-  const handlePhaseComplete = async () => {
-    if (isWorkPhase) {
-      // Work完了 → Rest開始
-      await playBeepShort(settings.alarmEnabled);
-      setIsWorkPhase(false);
-      setTimeLeft(settings.restTime * 60);
-      setTimerState('rest');
-    } else {
-      // Rest完了 → 次のラウンドまたは終了
-      if (currentRound >= settings.rounds) {
-        // 全ラウンド完了
-        await playBeepLong(settings.alarmEnabled);
-        setTimerState('completed');
-        deactivateKeepAwake();
-      } else {
-        // 次のラウンド開始
-        await playBeepShort(settings.alarmEnabled);
-        setCurrentRound(prev => prev + 1);
-        setIsWorkPhase(true);
-        setTimeLeft(settings.workTime * 60);
-        setTimerState('work');
-      }
+// フェーズ完了処理（デバッグ版）
+const handlePhaseComplete = async () => {
+  console.log('🔊 handlePhaseComplete called');
+  if (isWorkPhase) {
+    console.log('🔊 Work->Rest: About to call playBeepDouble, alarmEnabled:', settings.alarmEnabled);
+    try {
+      await playBeepDouble(settings.alarmEnabled);
+      console.log('🔊 playBeepDouble completed successfully');
+    } catch (error) {
+      console.error('🔊 playBeepDouble failed:', error);
     }
-  };
-
+    setIsWorkPhase(false);
+    setTimeLeft(settings.restTime * 60);
+    setTimerState('rest');
+  } else {
+    if (currentRound >= settings.rounds) {
+      console.log('🔊 All rounds complete: calling playBeepLong');
+      await playBeepLong(settings.alarmEnabled);
+      setTimerState('completed');
+      deactivateKeepAwake();
+    } else {
+      console.log('🔊 Next round: calling playBeepDouble');
+      await playBeepDouble(settings.alarmEnabled);
+      setCurrentRound(prev => prev + 1);
+      setIsWorkPhase(true);
+      setTimeLeft(settings.workTime * 60);
+      setTimerState('work');
+    }
+  }
+};
+ 
   // 開始/一時停止
   const handleStartPause = () => {
     if (timerState === 'paused') {
@@ -264,7 +269,7 @@ const TimerScreen: React.FC<TimerScreenProps> = ({ settings, onBack }) => {
           Work: {settings.workTime}min | Rest: {settings.restTime}min
         </Text>
         <Text style={styles.settingText}>
-          🔊 {settings.alarmEnabled ? 'ON' : 'OFF'} | 📳 Always ON
+          🔊 {settings.alarmEnabled ? 'ON' : 'OFF'}
         </Text>
       </View>
 
