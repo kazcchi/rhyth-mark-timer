@@ -40,22 +40,8 @@ class AudioPlayer {
           // ピッピッ音（短いビープを2回再生）
           await this.playDoubleBeep();
         } else {
-          // 従来の単発音声
-          const audioFile = type === 'beep_short'
-            ? require('../assets/audio/beep_short.wav')
-            : require('../assets/audio/beep_long.wav');
-
-          const { sound } = await Audio.Sound.createAsync(audioFile, {
-            shouldPlay: true,
-            volume: 1.0,
-          });
-
-          // 再生完了後にアンロード
-          sound.setOnPlaybackStatusUpdate((status) => {
-            if (status.isLoaded && status.didJustFinish) {
-              sound.unloadAsync();
-            }
-          });
+          // Web音声合成を使用（ファイル読み込み問題を回避）
+          this.playWebBeep(type);
         }
 
         console.log(`Audio played: ${type}`);
@@ -65,45 +51,48 @@ class AudioPlayer {
     }
   }
 
+  // Web音声合成でビープ音を生成
+  private playWebBeep(type: AudioType): void {
+    try {
+      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+
+      // 周波数とデュレーション設定
+      oscillator.frequency.setValueAtTime(800, context.currentTime);
+      oscillator.type = 'sine';
+      
+      const duration = type === 'beep_long' ? 1.0 : 0.2;
+      
+      // エンベロープ設定
+      gainNode.gain.setValueAtTime(0, context.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, context.currentTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + duration);
+
+      oscillator.start(context.currentTime);
+      oscillator.stop(context.currentTime + duration);
+
+      console.log(`Web beep generated: ${type}`);
+    } catch (error) {
+      console.error('Failed to generate web beep:', error);
+    }
+  }
+
   // ダブルビープ音を再生（ピッピッ）
   private async playDoubleBeep(): Promise<void> {
     try {
-      const audioFile = require('../assets/audio/beep_short.wav');
-      
       // 1回目のビープ
-      const { sound: sound1 } = await Audio.Sound.createAsync(audioFile, {
-        shouldPlay: true,
-        volume: 1.0,
-      });
-
-      // 1回目の再生完了を待つ
-      return new Promise((resolve) => {
-        sound1.setOnPlaybackStatusUpdate(async (status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            await sound1.unloadAsync();
-            
-            // 少し間隔を空けて2回目のビープ
-            setTimeout(async () => {
-              try {
-                const { sound: sound2 } = await Audio.Sound.createAsync(audioFile, {
-                  shouldPlay: true,
-                  volume: 1.0,
-                });
-
-                sound2.setOnPlaybackStatusUpdate(async (status2) => {
-                  if (status2.isLoaded && status2.didJustFinish) {
-                    await sound2.unloadAsync();
-                    resolve();
-                  }
-                });
-              } catch (error) {
-                console.error('Failed to play second beep:', error);
-                resolve();
-              }
-            }, 150); // 150ms間隔でピッピッ音
-          }
-        });
-      });
+      this.playWebBeep('beep_short');
+      
+      // 150ms後に2回目のビープ
+      setTimeout(() => {
+        this.playWebBeep('beep_short');
+      }, 150);
+      
+      console.log('Double beep generated');
     } catch (error) {
       console.error('Failed to play double beep:', error);
     }
