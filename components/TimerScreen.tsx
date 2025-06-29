@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { playBeepDouble, playBeepLong, initializeAudio } from '../utils/AudioPlayer';
+import { playBeepDouble, playBeepLong, initializeAudio, enableWebAudio } from '../utils/AudioPlayer';
 
 export interface TimerSettings {
   workTime: number;
@@ -137,8 +137,10 @@ const handlePhaseComplete = async () => {
 };
  
   // 開始/一時停止
-  const handleStartPause = () => {
+  const handleStartPause = async () => {
     if (timerState === 'paused') {
+      // iOS Safari用: ユーザーインタラクションでAudio Contextを有効化
+      await enableWebAudio();
       setTimerState(isWorkPhase ? 'work' : 'rest');
     } else {
       setTimerState('paused');

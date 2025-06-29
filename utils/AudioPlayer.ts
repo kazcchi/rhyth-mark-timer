@@ -41,7 +41,7 @@ class AudioPlayer {
           await this.playDoubleBeep();
         } else {
           // Web音声合成を使用（ファイル読み込み問題を回避）
-          this.playWebBeep(type);
+          await this.playWebBeep(type);
         }
 
         console.log(`Audio played: ${type}`);
@@ -52,9 +52,21 @@ class AudioPlayer {
   }
 
   // Web音声合成でビープ音を生成
-  private playWebBeep(type: AudioType): void {
+  private async playWebBeep(type: AudioType): Promise<void> {
     try {
-      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // iOSで動作するようにAudioContextを再利用
+      if (!this.webAudioContext) {
+        this.webAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+
+      const context = this.webAudioContext;
+      
+      // iOSでAudioContextが停止している場合は再開
+      if (context.state === 'suspended') {
+        await context.resume();
+        console.log('AudioContext resumed');
+      }
+
       const oscillator = context.createOscillator();
       const gainNode = context.createGain();
 
@@ -75,7 +87,7 @@ class AudioPlayer {
       oscillator.start(context.currentTime);
       oscillator.stop(context.currentTime + duration);
 
-      console.log(`Web beep generated: ${type}`);
+      console.log(`Web beep generated: ${type}, AudioContext state: ${context.state}`);
     } catch (error) {
       console.error('Failed to generate web beep:', error);
     }
@@ -85,11 +97,11 @@ class AudioPlayer {
   private async playDoubleBeep(): Promise<void> {
     try {
       // 1回目のビープ
-      this.playWebBeep('beep_short');
+      await this.playWebBeep('beep_short');
       
       // 150ms後に2回目のビープ
-      setTimeout(() => {
-        this.playWebBeep('beep_short');
+      setTimeout(async () => {
+        await this.playWebBeep('beep_short');
       }, 150);
       
       console.log('Double beep generated');
@@ -104,6 +116,27 @@ const audioPlayer = new AudioPlayer();
 
 // 便利関数
 export const initializeAudio = () => audioPlayer.initialize();
+
+// iOS用: ユーザーインタラクションでAudioContextを初期化
+export const enableWebAudio = async () => {
+  try {
+    const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (context.state === 'suspended') {
+      await context.resume();
+    }
+    // 無音を再生してiOSでのAudioContextを有効化
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    gainNode.gain.setValueAtTime(0, context.currentTime);
+    oscillator.start(context.currentTime);
+    oscillator.stop(context.currentTime + 0.01);
+    console.log('Web Audio enabled for iOS');
+  } catch (error) {
+    console.error('Failed to enable web audio:', error);
+  }
+};
 
 // タイマー移行時の音声（ピッピッ音）
 export const playBeepDouble = (alarmEnabled: boolean = true) => 
