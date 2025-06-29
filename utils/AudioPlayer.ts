@@ -98,13 +98,18 @@ class AudioPlayer {
     try {
       // 1回目のビープ
       await this.playWebBeep('beep_short');
+      console.log('First beep played');
       
-      // 150ms後に2回目のビープ
-      setTimeout(async () => {
-        await this.playWebBeep('beep_short');
-      }, 150);
+      // 150ms待ってから2回目のビープ
+      await new Promise(resolve => {
+        setTimeout(async () => {
+          await this.playWebBeep('beep_short');
+          console.log('Second beep played');
+          resolve(void 0);
+        }, 150);
+      });
       
-      console.log('Double beep generated');
+      console.log('Double beep completed');
     } catch (error) {
       console.error('Failed to play double beep:', error);
     }
