@@ -96,19 +96,49 @@ class AudioPlayer {
   // ダブルビープ音を再生（ピッピッ）
   private async playDoubleBeep(): Promise<void> {
     try {
+      console.log('Starting double beep');
+      
+      // 直接Web Audio APIで2つのビープを作成
+      if (!this.webAudioContext) {
+        this.webAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+
+      const context = this.webAudioContext;
+      
+      if (context.state === 'suspended') {
+        await context.resume();
+      }
+
       // 1回目のビープ
-      await this.playWebBeep('beep_short');
-      console.log('First beep played');
+      const osc1 = context.createOscillator();
+      const gain1 = context.createGain();
+      osc1.connect(gain1);
+      gain1.connect(context.destination);
+      osc1.frequency.setValueAtTime(800, context.currentTime);
+      osc1.type = 'sine';
+      gain1.gain.setValueAtTime(0, context.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.3, context.currentTime + 0.01);
+      gain1.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.2);
+      osc1.start(context.currentTime);
+      osc1.stop(context.currentTime + 0.2);
       
-      // 150ms待ってから2回目のビープ
-      await new Promise(resolve => {
-        setTimeout(async () => {
-          await this.playWebBeep('beep_short');
-          console.log('Second beep played');
-          resolve(void 0);
-        }, 150);
-      });
-      
+      console.log('First beep started');
+
+      // 2回目のビープ（150ms後）
+      const startTime2 = context.currentTime + 0.35;
+      const osc2 = context.createOscillator();
+      const gain2 = context.createGain();
+      osc2.connect(gain2);
+      gain2.connect(context.destination);
+      osc2.frequency.setValueAtTime(800, startTime2);
+      osc2.type = 'sine';
+      gain2.gain.setValueAtTime(0, startTime2);
+      gain2.gain.linearRampToValueAtTime(0.3, startTime2 + 0.01);
+      gain2.gain.exponentialRampToValueAtTime(0.01, startTime2 + 0.2);
+      osc2.start(startTime2);
+      osc2.stop(startTime2 + 0.2);
+
+      console.log('Second beep scheduled');
       console.log('Double beep completed');
     } catch (error) {
       console.error('Failed to play double beep:', error);
