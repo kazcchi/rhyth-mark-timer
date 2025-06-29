@@ -107,35 +107,35 @@ const TimerScreen: React.FC<TimerScreenProps> = ({ settings, onBack }) => {
   }, [timerState]);
 
 // フェーズ完了処理
-const handlePhaseComplete = async () => {
+const handlePhaseComplete = () => {
   console.log('🔊 handlePhaseComplete called');
   
-  // インターバルをクリアして状態変更前の処理を確実にする
-  if (intervalRef.current) {
-    clearInterval(intervalRef.current);
-    intervalRef.current = null;
-  }
-  
   if (isWorkPhase) {
-    console.log('🔊 Work->Rest: About to call playBeepDouble, alarmEnabled:', settings.alarmEnabled);
-    try {
-      await playBeepDouble(settings.alarmEnabled);
-      console.log('🔊 playBeepDouble completed successfully');
-    } catch (error) {
+    console.log('🔊 Work->Rest: transitioning to rest phase');
+    // 音声再生（非同期、状態変更をブロックしない）
+    playBeepDouble(settings.alarmEnabled).catch(error => {
       console.error('🔊 playBeepDouble failed:', error);
-    }
+    });
+    // 即座に状態変更
     setIsWorkPhase(false);
     setTimeLeft(settings.restTime * 60);
     setTimerState('rest');
   } else {
     if (currentRound >= settings.rounds) {
       console.log('🔊 All rounds complete: calling playBeepLong');
-      await playBeepLong(settings.alarmEnabled);
+      // 音声再生（非同期）
+      playBeepLong(settings.alarmEnabled).catch(error => {
+        console.error('🔊 playBeepLong failed:', error);
+      });
       setTimerState('completed');
       deactivateKeepAwake();
     } else {
-      console.log('🔊 Next round: calling playBeepDouble');
-      await playBeepDouble(settings.alarmEnabled);
+      console.log('🔊 Next round: transitioning to next work phase');
+      // 音声再生（非同期）
+      playBeepDouble(settings.alarmEnabled).catch(error => {
+        console.error('🔊 playBeepDouble failed:', error);
+      });
+      // 即座に状態変更
       setCurrentRound(prev => prev + 1);
       setIsWorkPhase(true);
       setTimeLeft(settings.workTime * 60);
