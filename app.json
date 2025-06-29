@@ -13,6 +13,9 @@
     "android": {
       "package": "com.kazcchi.rhythmark"
     },
+    "web": {
+      "bundler": "metro"
+    },
     "plugins": [
       "expo-av"
     ],
