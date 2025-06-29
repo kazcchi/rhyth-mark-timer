@@ -81,7 +81,7 @@ class AudioPlayer {
       
       // エンベロープ設定
       gainNode.gain.setValueAtTime(0, context.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, context.currentTime + 0.01);
+      gainNode.gain.linearRampToValueAtTime(0.7, context.currentTime + 0.01);
       gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + duration);
 
       oscillator.start(context.currentTime);
@@ -117,7 +117,7 @@ class AudioPlayer {
       osc1.frequency.setValueAtTime(800, context.currentTime);
       osc1.type = 'sine';
       gain1.gain.setValueAtTime(0, context.currentTime);
-      gain1.gain.linearRampToValueAtTime(0.3, context.currentTime + 0.01);
+      gain1.gain.linearRampToValueAtTime(0.7, context.currentTime + 0.01);
       gain1.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.2);
       osc1.start(context.currentTime);
       osc1.stop(context.currentTime + 0.2);
@@ -133,7 +133,7 @@ class AudioPlayer {
       osc2.frequency.setValueAtTime(800, startTime2);
       osc2.type = 'sine';
       gain2.gain.setValueAtTime(0, startTime2);
-      gain2.gain.linearRampToValueAtTime(0.3, startTime2 + 0.01);
+      gain2.gain.linearRampToValueAtTime(0.7, startTime2 + 0.01);
       gain2.gain.exponentialRampToValueAtTime(0.01, startTime2 + 0.2);
       osc2.start(startTime2);
       osc2.stop(startTime2 + 0.2);
