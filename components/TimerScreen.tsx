@@ -85,7 +85,9 @@ const TimerScreen: React.FC<TimerScreenProps> = ({ settings, onBack }) => {
       intervalRef.current = setInterval(() => {
         setTimeLeft(prevTime => {
           const newTime = prevTime - 1;
+          console.log(`⏱️ Timer tick: ${newTime}, phase: ${isWorkPhase ? 'work' : 'rest'}, state: ${timerState}`);
           if (newTime <= 0) {
+            console.log(`⏱️ Time reached 0, calling handlePhaseComplete`);
             handlePhaseComplete();
             return 0;
           }
@@ -108,38 +110,54 @@ const TimerScreen: React.FC<TimerScreenProps> = ({ settings, onBack }) => {
 
 // フェーズ完了処理
 const handlePhaseComplete = () => {
-  console.log('🔊 handlePhaseComplete called');
+  console.log('🔊 handlePhaseComplete called, isWorkPhase:', isWorkPhase, 'currentRound:', currentRound);
   
   if (isWorkPhase) {
     console.log('🔊 Work->Rest: transitioning to rest phase');
-    // 音声再生（非同期、状態変更をブロックしない）
-    playBeepDouble(settings.alarmEnabled).catch(error => {
-      console.error('🔊 playBeepDouble failed:', error);
-    });
-    // 即座に状態変更
+    
+    // 状態変更を最優先で実行
     setIsWorkPhase(false);
     setTimeLeft(settings.restTime * 60);
     setTimerState('rest');
-  } else {
-    if (currentRound >= settings.rounds) {
-      console.log('🔊 All rounds complete: calling playBeepLong');
-      // 音声再生（非同期）
-      playBeepLong(settings.alarmEnabled).catch(error => {
-        console.error('🔊 playBeepLong failed:', error);
-      });
-      setTimerState('completed');
-      deactivateKeepAwake();
-    } else {
-      console.log('🔊 Next round: transitioning to next work phase');
-      // 音声再生（非同期）
+    
+    // 音声再生は非同期で実行（状態変更に影響しない）
+    setTimeout(() => {
       playBeepDouble(settings.alarmEnabled).catch(error => {
         console.error('🔊 playBeepDouble failed:', error);
       });
-      // 即座に状態変更
+    }, 10);
+    
+    console.log('🔊 State changed to rest');
+  } else {
+    if (currentRound >= settings.rounds) {
+      console.log('🔊 All rounds complete');
+      
+      setTimerState('completed');
+      deactivateKeepAwake();
+      
+      // 音声再生は非同期で実行
+      setTimeout(() => {
+        playBeepLong(settings.alarmEnabled).catch(error => {
+          console.error('🔊 playBeepLong failed:', error);
+        });
+      }, 10);
+    } else {
+      console.log('🔊 Rest->Work: transitioning to next work phase');
+      
+      // 状態変更を最優先で実行
       setCurrentRound(prev => prev + 1);
       setIsWorkPhase(true);
       setTimeLeft(settings.workTime * 60);
       setTimerState('work');
+      
+      // 音声再生は非同期で実行
+      setTimeout(() => {
+        playBeepDouble(settings.alarmEnabled).catch(error => {
+          console.error('🔊 playBeepDouble failed:', error);
+        });
+      }, 10);
+      
+      console.log('🔊 State changed to work');
     }
   }
 };
