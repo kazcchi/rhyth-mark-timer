@@ -73,15 +73,15 @@ class AudioPlayer {
       oscillator.connect(gainNode);
       gainNode.connect(context.destination);
 
-      // 周波数とデュレーション設定
-      oscillator.frequency.setValueAtTime(800, context.currentTime);
-      oscillator.type = 'sine';
+      // 周波数とデュレーション設定（より聞こえやすい周波数と波形）
+      oscillator.frequency.setValueAtTime(1000, context.currentTime);
+      oscillator.type = 'square'; // より鋭い音
       
-      const duration = type === 'beep_long' ? 1.0 : 0.2;
+      const duration = type === 'beep_long' ? 1.0 : 0.3;
       
-      // エンベロープ設定
+      // エンベロープ設定（最大音量）
       gainNode.gain.setValueAtTime(0, context.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.7, context.currentTime + 0.01);
+      gainNode.gain.linearRampToValueAtTime(1.0, context.currentTime + 0.01); // 最大音量
       gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + duration);
 
       oscillator.start(context.currentTime);
@@ -114,13 +114,13 @@ class AudioPlayer {
       const gain1 = context.createGain();
       osc1.connect(gain1);
       gain1.connect(context.destination);
-      osc1.frequency.setValueAtTime(800, context.currentTime);
-      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1000, context.currentTime);
+      osc1.type = 'square';
       gain1.gain.setValueAtTime(0, context.currentTime);
-      gain1.gain.linearRampToValueAtTime(0.7, context.currentTime + 0.01);
-      gain1.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.2);
+      gain1.gain.linearRampToValueAtTime(1.0, context.currentTime + 0.01);
+      gain1.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
       osc1.start(context.currentTime);
-      osc1.stop(context.currentTime + 0.2);
+      osc1.stop(context.currentTime + 0.3);
       
       console.log('First beep started');
 
@@ -130,13 +130,13 @@ class AudioPlayer {
       const gain2 = context.createGain();
       osc2.connect(gain2);
       gain2.connect(context.destination);
-      osc2.frequency.setValueAtTime(800, startTime2);
-      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1000, startTime2);
+      osc2.type = 'square';
       gain2.gain.setValueAtTime(0, startTime2);
-      gain2.gain.linearRampToValueAtTime(0.7, startTime2 + 0.01);
-      gain2.gain.exponentialRampToValueAtTime(0.01, startTime2 + 0.2);
+      gain2.gain.linearRampToValueAtTime(1.0, startTime2 + 0.01);
+      gain2.gain.exponentialRampToValueAtTime(0.01, startTime2 + 0.3);
       osc2.start(startTime2);
-      osc2.stop(startTime2 + 0.2);
+      osc2.stop(startTime2 + 0.3);
 
       console.log('Second beep scheduled');
       console.log('Double beep completed');
