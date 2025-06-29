@@ -84,11 +84,12 @@ const TimerScreen: React.FC<TimerScreenProps> = ({ settings, onBack }) => {
     if (timerState === 'work' || timerState === 'rest') {
       intervalRef.current = setInterval(() => {
         setTimeLeft(prevTime => {
-          if (prevTime <= 1) {
+          const newTime = prevTime - 1;
+          if (newTime <= 0) {
             handlePhaseComplete();
             return 0;
           }
-          return prevTime - 1;
+          return newTime;
         });
       }, 1000);
     } else {
@@ -105,9 +106,16 @@ const TimerScreen: React.FC<TimerScreenProps> = ({ settings, onBack }) => {
     };
   }, [timerState]);
 
-// フェーズ完了処理（デバッグ版）
+// フェーズ完了処理
 const handlePhaseComplete = async () => {
   console.log('🔊 handlePhaseComplete called');
+  
+  // インターバルをクリアして状態変更前の処理を確実にする
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }
+  
   if (isWorkPhase) {
     console.log('🔊 Work->Rest: About to call playBeepDouble, alarmEnabled:', settings.alarmEnabled);
     try {
