@@ -122,10 +122,11 @@ const handlePhaseComplete = () => {
     
     // 音声再生は非同期で実行（状態変更に影響しない）
     setTimeout(() => {
-      console.log('🔊 Playing transition beep - should be double');
-      playBeepShort(settings.alarmEnabled);
+      
+console.log('🔊 Playing transition beep - should be double');
+      playBeepDouble(settings.alarmEnabled);
       setTimeout(() => {
-        playBeepShort(settings.alarmEnabled);
+        playBeepDouble(settings.alarmEnabled);
       }, 200);
     }, 10);
     
@@ -155,9 +156,9 @@ const handlePhaseComplete = () => {
       // 音声再生は非同期で実行
       setTimeout(() => {
         console.log('🔊 Playing transition beep - should be double');
-        playBeepShort(settings.alarmEnabled);
+        playBeepDouble(settings.alarmEnabled);
         setTimeout(() => {
-          playBeepShort(settings.alarmEnabled);
+          playBeepDouble(settings.alarmEnabled);
         }, 200);
       }, 10);
       
