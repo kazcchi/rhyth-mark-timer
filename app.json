@@ -10,15 +10,19 @@
       "resizeMode": "contain",
       "backgroundColor": "#1F2937"
     },
+    "ios": {
+      "bundleIdentifier": "com.kazcchi.rhythmark",
+      "supportsTablet": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
     "android": {
       "package": "com.kazcchi.rhythmark"
     },
     "web": {
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-av"
-    ],
     "extra": {
       "eas": {
         "projectId": "89d89b34-ad48-4083-993a-1e03c6678818"

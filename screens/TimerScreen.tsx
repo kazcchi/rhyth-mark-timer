@@ -1,161 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, AppState, AppStateStatus } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../App';
 import { useSettings } from '../utils/SettingsContext';
-import { playBeepShort, playBeepLong, initializeAudio } from '../utils/AudioPlayer';
-import { startTimerBackground, stopTimerBackground, recordBackgroundStart, getBackgroundElapsedTime } from '../utils/BackgroundManager';
+import {
+  initializeAudio,
+  playBeepDouble,
+  playBeepLong,
+  startBackgroundKeepAlive,
+  stopBackgroundKeepAlive,
+} from '../utils/AudioPlayer';
 
 type TimerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timer'>;
+
+type Phase = 'work' | 'rest';
 
 export default function TimerScreen() {
   const navigation = useNavigation<TimerScreenNavigationProp>();
   const { settings } = useSettings();
-  
-  const [timeRemaining, setTimeRemaining] = useState(0);
+
+  const [timeRemaining, setTimeRemaining] = useState(0); // 表示用（秒）
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [phase, setPhase] = useState<'work' | 'rest'>('work');
+  const [phase, setPhase] = useState<Phase>('work');
   const [currentRound, setCurrentRound] = useState(1);
   const [alarmEnabled, setAlarmEnabled] = useState(true);
+
+  // タイマーは「現在フェーズの終了時刻」を基準に進める。
+  // 画面ロックや一時的なJS停止があっても、実時間から正しい状態を再計算できる。
+  const phaseEndAtRef = useRef(0); // 現在フェーズの終了時刻 (ms epoch)
+  const pausedRemainingMsRef = useRef(0); // 一時停止時の残りms
+  const phaseRef = useRef<Phase>('work');
+  const roundRef = useRef(1);
+  const alarmRef = useRef(true);
+
+  alarmRef.current = alarmEnabled;
+
+  const workMs = (settings.workMinutes * 60 + settings.workSeconds) * 1000;
+  const restMs = (settings.restMinutes * 60 + settings.restSeconds) * 1000;
 
   // 音声システム初期化
   useEffect(() => {
     initializeAudio();
   }, []);
 
-  // 設定変更時にタイマーをリセット
-  useEffect(() => {
-    const workTime = settings.workMinutes * 60 + settings.workSeconds;
-    setTimeRemaining(workTime);
-    setPhase('work');
-    setCurrentRound(1);
+  const applyIdleState = useCallback(() => {
     setIsRunning(false);
     setIsPaused(false);
-  }, [settings]);
+    setPhase('work');
+    setCurrentRound(1);
+    phaseRef.current = 'work';
+    roundRef.current = 1;
+    setTimeRemaining(Math.round(workMs / 1000));
+    stopBackgroundKeepAlive();
+  }, [workMs]);
 
-  // アプリ状態監視
+  // 設定変更時にタイマーをリセット
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'background' && isRunning && !isPaused) {
-        recordBackgroundStart();
-        console.log('App went to background during timer');
-      } else if (nextAppState === 'active') {
-        if (isRunning && !isPaused) {
-          syncTimerAfterBackground();
-        }
-      }
-    };
+    applyIdleState();
+  }, [applyIdleState]);
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription?.remove();
-  }, [isRunning, isPaused]);
+  // 毎ティック実時間から残りを再計算し、終了時刻を過ぎていたらフェーズを進める。
+  // 長時間止まっていた場合も while で複数フェーズ分を一気に追いつく。
+  const tick = useCallback(() => {
+    const now = Date.now();
+    let endAt = phaseEndAtRef.current;
+    let ph = phaseRef.current;
+    let rd = roundRef.current;
+    let transitioned = false;
+    let finished = false;
 
-  // バックグラウンド復帰時のタイマー同期
-  const syncTimerAfterBackground = () => {
-    const elapsedSeconds = getBackgroundElapsedTime();
-    if (elapsedSeconds <= 0) return;
-
-    console.log(`Syncing timer after ${elapsedSeconds} seconds in background`);
-    
-    let remainingTime = timeRemaining - elapsedSeconds;
-    let currentPhaseLocal = phase;
-    let currentRoundLocal = currentRound;
-
-    // バックグラウンド中のフェーズ変化を計算
-    while (remainingTime <= 0 && isRunning) {
-      if (currentPhaseLocal === 'work') {
-        // Work完了
-        if (alarmEnabled) playBeepShort();
-        
-        const restTime = settings.restMinutes * 60 + settings.restSeconds;
-        currentPhaseLocal = 'rest';
-        remainingTime += restTime;
+    while (now >= endAt) {
+      if (ph === 'work') {
+        ph = 'rest';
+        endAt += restMs;
+        transitioned = true;
+      } else if (rd >= settings.rounds) {
+        finished = true;
+        break;
       } else {
-        // Rest完了
-        if (currentRoundLocal >= settings.rounds) {
-          // 全ラウンド完了
-          if (alarmEnabled) playBeepLong();
-          
-          setIsRunning(false);
-          setIsPaused(false);
-          setPhase('work');
-          setCurrentRound(1);
-          const workTime = settings.workMinutes * 60 + settings.workSeconds;
-          setTimeRemaining(workTime);
-          stopTimerBackground();
-          return;
-        } else {
-          // 次のラウンド
-          if (alarmEnabled) playBeepShort();
-          
-          currentRoundLocal += 1;
-          currentPhaseLocal = 'work';
-          const workTime = settings.workMinutes * 60 + settings.workSeconds;
-          remainingTime += workTime;
-        }
+        rd += 1;
+        ph = 'work';
+        endAt += workMs;
+        transitioned = true;
       }
     }
 
-    // 状態を更新
-    setTimeRemaining(Math.max(0, remainingTime));
-    setPhase(currentPhaseLocal);
-    setCurrentRound(currentRoundLocal);
-  };
-
-  // タイマーロジック
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isRunning && !isPaused && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining(time => time - 1);
-      }, 1000);
-    } else if (timeRemaining === 0 && isRunning) {
-      // フェーズ切り替え
-      handlePhaseComplete();
+    if (finished) {
+      if (alarmRef.current) playBeepLong();
+      applyIdleState();
+      return;
     }
 
+    if (transitioned) {
+      if (alarmRef.current) playBeepDouble();
+      phaseEndAtRef.current = endAt;
+      phaseRef.current = ph;
+      roundRef.current = rd;
+      setPhase(ph);
+      setCurrentRound(rd);
+    }
+
+    setTimeRemaining(Math.ceil((endAt - now) / 1000));
+  }, [workMs, restMs, settings.rounds, applyIdleState]);
+
+  useEffect(() => {
+    if (!isRunning || isPaused) return;
+    const interval = setInterval(tick, 250);
     return () => clearInterval(interval);
-  }, [isRunning, isPaused, timeRemaining, phase, currentRound, settings]);
-
-  // フェーズ完了時の処理
-  const handlePhaseComplete = async () => {
-    if (phase === 'work') {
-      // Work → Rest
-      if (alarmEnabled) {
-        await playBeepShort();
-      }
-      const restTime = settings.restMinutes * 60 + settings.restSeconds;
-      setPhase('rest');
-      setTimeRemaining(restTime);
-    } else {
-      // Rest → 次のラウンドまたは終了
-      if (currentRound >= settings.rounds) {
-        // 全ラウンド終了
-        if (alarmEnabled) {
-          await playBeepLong();
-        }
-        setIsRunning(false);
-        setIsPaused(false);
-        setPhase('work');
-        setCurrentRound(1);
-        const workTime = settings.workMinutes * 60 + settings.workSeconds;
-        setTimeRemaining(workTime);
-        stopTimerBackground();
-      } else {
-        // 次のラウンド
-        if (alarmEnabled) {
-          await playBeepShort();
-        }
-        setCurrentRound(prev => prev + 1);
-        setPhase('work');
-        const workTime = settings.workMinutes * 60 + settings.workSeconds;
-        setTimeRemaining(workTime);
-      }
-    }
-  };
+  }, [isRunning, isPaused, tick]);
 
   // 時間フォーマット
   const formatTime = (seconds: number) => {
@@ -166,29 +120,33 @@ export default function TimerScreen() {
 
   // ボタンハンドラー
   const handleStart = () => {
+    phaseEndAtRef.current = Date.now() + workMs;
+    phaseRef.current = 'work';
+    roundRef.current = 1;
+    setPhase('work');
+    setCurrentRound(1);
+    setTimeRemaining(Math.round(workMs / 1000));
     setIsRunning(true);
     setIsPaused(false);
-    startTimerBackground();
+    startBackgroundKeepAlive();
   };
 
   const handlePause = () => {
     if (isPaused) {
-      setIsPaused(false); // Resume
-      startTimerBackground();
+      // Resume
+      phaseEndAtRef.current = Date.now() + pausedRemainingMsRef.current;
+      setIsPaused(false);
+      startBackgroundKeepAlive();
     } else {
-      setIsPaused(true); // Pause
-      stopTimerBackground();
+      // Pause
+      pausedRemainingMsRef.current = Math.max(0, phaseEndAtRef.current - Date.now());
+      setIsPaused(true);
+      stopBackgroundKeepAlive();
     }
   };
 
   const handleReset = () => {
-    setIsRunning(false);
-    setIsPaused(false);
-    setPhase('work');
-    setCurrentRound(1);
-    const workTime = settings.workMinutes * 60 + settings.workSeconds;
-    setTimeRemaining(workTime);
-    stopTimerBackground();
+    applyIdleState();
   };
 
   const handleSettings = () => {
@@ -221,7 +179,7 @@ export default function TimerScreen() {
     <View style={styles.container}>
       {/* Header */}
       <Text style={styles.title}>RhythMark</Text>
-      
+
       {/* Timer Display */}
       <View style={styles.timerContainer}>
         <Text style={[styles.timer, { color: getTimerColor() }]}>
@@ -240,7 +198,7 @@ export default function TimerScreen() {
       {/* Main Controls */}
       <View style={styles.mainControls}>
         {/* Start/Pause Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.button, styles.mainButton, { backgroundColor: getStartPauseButtonColor() }]}
           onPress={!isRunning ? handleStart : handlePause}
         >
@@ -248,7 +206,7 @@ export default function TimerScreen() {
         </TouchableOpacity>
 
         {/* Reset Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.button, styles.mainButton, styles.resetButton]}
           onPress={handleReset}
         >
@@ -259,7 +217,7 @@ export default function TimerScreen() {
       {/* Secondary Controls */}
       <View style={styles.secondaryControls}>
         {/* Settings Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.button, styles.secondaryButton, styles.settingsButton]}
           onPress={handleSettings}
         >
@@ -267,7 +225,7 @@ export default function TimerScreen() {
         </TouchableOpacity>
 
         {/* Alarm Toggle */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.button, styles.secondaryButton, styles.alarmButton]}
           onPress={toggleAlarm}
         >
