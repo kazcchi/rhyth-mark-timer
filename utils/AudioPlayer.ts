@@ -26,9 +26,9 @@ export async function initializeAudio(): Promise<void> {
     });
 
     beepDoublePlayer = createAudioPlayer(beepDoubleSource);
-    beepDoublePlayer.volume = 1.0;
+    beepDoublePlayer.volume = 0.5;
     beepLongPlayer = createAudioPlayer(beepLongSource);
-    beepLongPlayer.volume = 1.0;
+    beepLongPlayer.volume = 0.5;
     silencePlayer = createAudioPlayer(silenceSource);
     silencePlayer.loop = true;
 
