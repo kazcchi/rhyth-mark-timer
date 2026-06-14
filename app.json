@@ -21,7 +21,8 @@
       "package": "com.kazcchi.rhythmark"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
