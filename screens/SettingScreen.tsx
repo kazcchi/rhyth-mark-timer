@@ -5,6 +5,7 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
+  TextInput,
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -12,13 +13,13 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../App';
 
 import NumberPicker from '../components/NumberPicker';
-import { useSettings } from '../utils/SettingsContext';
+import { useSettings, PRESET_SLOTS } from '../utils/SettingsContext';
 
 type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
 
 export default function SettingScreen() {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, presets, savePreset } = useSettings();
 
   // ローカル設定値の状態管理
   const [workMinutes, setWorkMinutes] = useState(settings.workMinutes);
@@ -26,6 +27,11 @@ export default function SettingScreen() {
   const [restMinutes, setRestMinutes] = useState(settings.restMinutes);
   const [restSeconds, setRestSeconds] = useState(settings.restSeconds);
   const [rounds, setRounds] = useState(settings.rounds);
+
+  // プリセット名の入力欄（未保存スロットは空欄でプレースホルダー表示）
+  const [presetNameInputs, setPresetNameInputs] = useState(
+    new Array(PRESET_SLOTS).fill('')
+  );
 
   // 現在の設定値をローカル状態に反映
   useEffect(() => {
@@ -35,6 +41,38 @@ export default function SettingScreen() {
     setRestSeconds(settings.restSeconds);
     setRounds(settings.rounds);
   }, [settings]);
+
+  // プリセット名をローカル入力欄に反映
+  useEffect(() => {
+    setPresetNameInputs(presets.map((preset) => preset?.name ?? ''));
+  }, [presets]);
+
+  const handleLoadPreset = (index: number) => {
+    const preset = presets[index];
+    if (!preset) return;
+    setWorkMinutes(preset.workMinutes);
+    setWorkSeconds(preset.workSeconds);
+    setRestMinutes(preset.restMinutes);
+    setRestSeconds(preset.restSeconds);
+    setRounds(preset.rounds);
+  };
+
+  const handleSavePreset = async (index: number) => {
+    const name = presetNameInputs[index].trim();
+    try {
+      await savePreset(index, {
+        name: name || undefined,
+        workMinutes,
+        workSeconds,
+        restMinutes,
+        restSeconds,
+        rounds,
+      });
+      Alert.alert('Preset Saved', `${name || `Preset ${index + 1}`} saved!`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save preset. Please try again.');
+    }
+  };
 
   // 設定保存
   const handleSaveAndBack = async () => {
@@ -138,6 +176,46 @@ export default function SettingScreen() {
           </View>
         </View>
 
+        {/* Presets Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Presets</Text>
+          {presets.map((preset, index) => (
+            <View key={index} style={styles.presetRow}>
+              <TextInput
+                style={styles.presetNameInput}
+                placeholder={`Preset ${index + 1}`}
+                placeholderTextColor="#8E8E93"
+                value={presetNameInputs[index]}
+                onChangeText={(text) => {
+                  const updated = [...presetNameInputs];
+                  updated[index] = text;
+                  setPresetNameInputs(updated);
+                }}
+              />
+              <Text style={styles.presetSummary}>
+                {preset
+                  ? `${preset.workMinutes}:${preset.workSeconds.toString().padStart(2, '0')} / ${preset.restMinutes}:${preset.restSeconds.toString().padStart(2, '0')} ×${preset.rounds}`
+                  : 'Empty'}
+              </Text>
+              <View style={styles.presetButtonGroup}>
+                <TouchableOpacity
+                  style={[styles.presetButton, styles.loadPresetButton, !preset && styles.disabledPresetButton]}
+                  disabled={!preset}
+                  onPress={() => handleLoadPreset(index)}
+                >
+                  <Text style={styles.presetButtonText}>Load</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.presetButton, styles.savePresetButton]}
+                  onPress={() => handleSavePreset(index)}
+                >
+                  <Text style={styles.presetButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+
         {/* Preview Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Timer Preview</Text>
@@ -206,6 +284,50 @@ const styles = StyleSheet.create({
   timePickerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+  },
+  presetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  presetNameInput: {
+    flex: 1.2,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    paddingVertical: 4,
+    marginRight: 8,
+  },
+  presetSummary: {
+    flex: 1.4,
+    fontSize: 12,
+    color: '#8E8E93',
+    marginRight: 8,
+  },
+  presetButtonGroup: {
+    flexDirection: 'row',
+  },
+  presetButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginLeft: 6,
+  },
+  loadPresetButton: {
+    backgroundColor: '#5856D6',
+  },
+  savePresetButton: {
+    backgroundColor: '#34C759',
+  },
+  disabledPresetButton: {
+    backgroundColor: '#C7C7CC',
+  },
+  presetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   pickerGroup: {
     alignItems: 'center',

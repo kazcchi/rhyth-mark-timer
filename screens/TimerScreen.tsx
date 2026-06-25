@@ -18,7 +18,7 @@ type Phase = 'work' | 'rest';
 
 export default function TimerScreen() {
   const navigation = useNavigation<TimerScreenNavigationProp>();
-  const { settings } = useSettings();
+  const { settings, presets, updateSettings } = useSettings();
 
   const [timeRemaining, setTimeRemaining] = useState(0); // 表示用（秒）
   const [isRunning, setIsRunning] = useState(false);
@@ -153,6 +153,12 @@ export default function TimerScreen() {
     navigation.navigate('Settings');
   };
 
+  const handleSelectPreset = (index: number) => {
+    const preset = presets[index];
+    if (!preset || isRunning) return;
+    updateSettings(preset);
+  };
+
   const toggleAlarm = () => {
     setAlarmEnabled(!alarmEnabled);
   };
@@ -194,6 +200,25 @@ export default function TimerScreen() {
       <Text style={styles.roundText}>
         Round {currentRound} / {settings.rounds}
       </Text>
+
+      {/* Preset Quick Switch */}
+      <View style={styles.presetQuickRow}>
+        {presets.map((preset, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.presetQuickButton,
+              (!preset || isRunning) && styles.presetQuickButtonDisabled,
+            ]}
+            disabled={!preset || isRunning}
+            onPress={() => handleSelectPreset(index)}
+          >
+            <Text style={styles.presetQuickButtonText}>
+              {preset?.name?.trim() || `Preset ${index + 1}`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Main Controls */}
       <View style={styles.mainControls}>
@@ -271,7 +296,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#000000',
+    marginBottom: 15,
+  },
+  presetQuickRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
     marginBottom: 30,
+  },
+  presetQuickButton: {
+    backgroundColor: '#5856D6',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginHorizontal: 5,
+  },
+  presetQuickButtonDisabled: {
+    backgroundColor: '#C7C7CC',
+  },
+  presetQuickButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   mainControls: {
     flexDirection: 'row',

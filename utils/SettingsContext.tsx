@@ -9,10 +9,18 @@ export interface TimerSettings {
   rounds: number;
 }
 
+export interface TimerPreset extends TimerSettings {
+  name?: string;
+}
+
+export const PRESET_SLOTS = 3;
+
 interface SettingsContextType {
   settings: TimerSettings;
   updateSettings: (newSettings: TimerSettings) => Promise<void>;
   loadSettings: () => Promise<void>;
+  presets: (TimerPreset | null)[];
+  savePreset: (index: number, preset: TimerPreset) => Promise<void>;
 }
 
 const defaultSettings: TimerSettings = {
@@ -22,6 +30,8 @@ const defaultSettings: TimerSettings = {
   restSeconds: 10,
   rounds: 4,
 };
+
+const PRESETS_KEY = 'timerPresets';
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
@@ -39,6 +49,9 @@ interface SettingsProviderProps {
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
   const [settings, setSettings] = useState<TimerSettings>(defaultSettings);
+  const [presets, setPresets] = useState<(TimerPreset | null)[]>(
+    new Array(PRESET_SLOTS).fill(null)
+  );
 
   // 設定を読み込み
   const loadSettings = async () => {
@@ -64,13 +77,43 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }
   };
 
-  // 初期化時に設定を読み込み
+  // プリセットを読み込み
+  const loadPresets = async () => {
+    try {
+      const savedPresets = await AsyncStorage.getItem(PRESETS_KEY);
+      if (savedPresets) {
+        const parsed: (TimerPreset | null)[] = JSON.parse(savedPresets);
+        const padded = new Array(PRESET_SLOTS).fill(null).map((_, i) => parsed[i] ?? null);
+        setPresets(padded);
+      }
+    } catch (error) {
+      console.error('Failed to load presets:', error);
+    }
+  };
+
+  // 指定スロットにプリセットを保存
+  const savePreset = async (index: number, preset: TimerPreset) => {
+    try {
+      const updated = [...presets];
+      updated[index] = preset;
+      await AsyncStorage.setItem(PRESETS_KEY, JSON.stringify(updated));
+      setPresets(updated);
+    } catch (error) {
+      console.error('Failed to save preset:', error);
+      throw error;
+    }
+  };
+
+  // 初期化時に設定とプリセットを読み込み
   useEffect(() => {
     loadSettings();
+    loadPresets();
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, loadSettings }}>
+    <SettingsContext.Provider
+      value={{ settings, updateSettings, loadSettings, presets, savePreset }}
+    >
       {children}
     </SettingsContext.Provider>
   );
