@@ -1,4 +1,6 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
+import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 
 // 音源アセット
 const beepDoubleSource = require('../assets/audio/beep_double.wav'); // ピッピッ（フェーズ切替）
@@ -55,6 +57,26 @@ export const playBeepDouble = () => playBeep(beepDoublePlayer);
 
 // 全ラウンド終了時のピー音
 export const playBeepLong = () => playBeep(beepLongPlayer);
+
+// バイブレーション（Webはハプティクス非対応のため無視）
+async function vibrate(pulses: number, intervalMs: number): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    for (let i = 0; i < pulses; i++) {
+      setTimeout(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }, i * intervalMs);
+    }
+  } catch (error) {
+    console.error('Failed to vibrate:', error);
+  }
+}
+
+// フェーズ切替時のダブルバイブ（はっきり2回）
+export const vibrateDouble = () => vibrate(2, 350);
+
+// 全ラウンド終了時のトリプルバイブ（はっきり3回）
+export const vibrateLong = () => vibrate(3, 350);
 
 // タイマー作動中だけ無音をループ再生し、ロック中もアプリを生かしておく
 export async function startBackgroundKeepAlive(): Promise<void> {

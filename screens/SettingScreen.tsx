@@ -14,6 +14,7 @@ import type { RootStackParamList } from '../App';
 
 import NumberPicker from '../components/NumberPicker';
 import { useSettings, PRESET_SLOTS } from '../utils/SettingsContext';
+import { Colors } from '../utils/colors';
 
 type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
 
@@ -255,14 +256,14 @@ export default function SettingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: Colors.background,
   },
   scrollContent: {
     padding: 20,
     paddingBottom: 100,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.cardWhite,
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: Colors.textBlack,
     marginBottom: 15,
   },
   timePickerContainer: {
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
     flex: 1.2,
     fontSize: 14,
     fontWeight: '600',
-    color: '#000000',
+    color: Colors.textBlack,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
     paddingVertical: 4,
@@ -316,13 +317,13 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   loadPresetButton: {
-    backgroundColor: '#5856D6',
+    backgroundColor: Colors.primaryBlue,
   },
   savePresetButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: Colors.successGreen,
   },
   disabledPresetButton: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: Colors.inactiveGray,
   },
   presetButtonText: {
     color: '#FFFFFF',
@@ -342,13 +343,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   previewContainer: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: Colors.background,
     borderRadius: 8,
     padding: 15,
   },
   previewText: {
     fontSize: 16,
-    color: '#000000',
+    color: Colors.textBlack,
     marginBottom: 5,
     fontFamily: 'System',
   },
@@ -358,10 +359,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 20,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: Colors.background,
   },
   saveButton: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.black,
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: 'center',

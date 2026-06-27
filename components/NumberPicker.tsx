@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Colors } from '../utils/colors';
 
 interface NumberPickerProps {
   value: number;
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F8F8',
+    backgroundColor: Colors.background,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: Colors.primaryBlue,
   },
   decrementButton: {
     borderTopLeftRadius: 8,
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
   },
   disabledButton: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: Colors.inactiveGray,
   },
   buttonText: {
     fontSize: 20,
@@ -111,11 +112,11 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.cardWhite,
   },
   valueText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: Colors.textBlack,
   },
 });

@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import TimerScreen from './screens/TimerScreen';
 import SettingScreen from './screens/SettingScreen';
 import { SettingsProvider } from './utils/SettingsContext';
+import { Colors } from './utils/colors';
 
 export type RootStackParamList = {
   Timer: undefined;
@@ -21,7 +22,7 @@ export default function App() {
           initialRouteName="Timer"
           screenOptions={{
             headerStyle: {
-              backgroundColor: '#007AFF',
+              backgroundColor: Colors.primaryBlue,
             },
             headerTintColor: '#fff',
             headerTitleStyle: {

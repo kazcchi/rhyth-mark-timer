@@ -8,9 +8,12 @@ import {
   initializeAudio,
   playBeepDouble,
   playBeepLong,
+  vibrateDouble,
+  vibrateLong,
   startBackgroundKeepAlive,
   stopBackgroundKeepAlive,
 } from '../utils/AudioPlayer';
+import { Colors } from '../utils/colors';
 
 type TimerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Timer'>;
 
@@ -26,6 +29,7 @@ export default function TimerScreen() {
   const [phase, setPhase] = useState<Phase>('work');
   const [currentRound, setCurrentRound] = useState(1);
   const [alarmEnabled, setAlarmEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
 
   // タイマーは「現在フェーズの終了時刻」を基準に進める。
   // 画面ロックや一時的なJS停止があっても、実時間から正しい状態を再計算できる。
@@ -34,8 +38,10 @@ export default function TimerScreen() {
   const phaseRef = useRef<Phase>('work');
   const roundRef = useRef(1);
   const alarmRef = useRef(true);
+  const vibrationRef = useRef(true);
 
   alarmRef.current = alarmEnabled;
+  vibrationRef.current = vibrationEnabled;
 
   const workMs = (settings.workMinutes * 60 + settings.workSeconds) * 1000;
   const restMs = (settings.restMinutes * 60 + settings.restSeconds) * 1000;
@@ -89,12 +95,14 @@ export default function TimerScreen() {
 
     if (finished) {
       if (alarmRef.current) playBeepLong();
+      if (vibrationRef.current) vibrateLong();
       applyIdleState();
       return;
     }
 
     if (transitioned) {
       if (alarmRef.current) playBeepDouble();
+      if (vibrationRef.current) vibrateDouble();
       phaseEndAtRef.current = endAt;
       phaseRef.current = ph;
       roundRef.current = rd;
@@ -163,11 +171,15 @@ export default function TimerScreen() {
     setAlarmEnabled(!alarmEnabled);
   };
 
+  const toggleVibration = () => {
+    setVibrationEnabled(!vibrationEnabled);
+  };
+
   // タイマーの色を取得
   const getTimerColor = () => {
-    if (phase === 'work') return '#007AFF'; // Blue
-    if (phase === 'rest') return '#FF3B30'; // Red
-    return '#000000';
+    if (phase === 'work') return Colors.workBlue;
+    if (phase === 'rest') return Colors.restRed;
+    return Colors.textBlack;
   };
 
   const getStartPauseButtonText = () => {
@@ -177,8 +189,8 @@ export default function TimerScreen() {
   };
 
   const getStartPauseButtonColor = () => {
-    if (!isRunning) return '#007AFF'; // Blue
-    return '#FF9500'; // Orange for pause/resume
+    if (!isRunning || isPaused) return Colors.workBlue; // Start / Resume
+    return Colors.pauseOrange; // Pause
   };
 
   return (
@@ -203,21 +215,31 @@ export default function TimerScreen() {
 
       {/* Preset Quick Switch */}
       <View style={styles.presetQuickRow}>
-        {presets.map((preset, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.presetQuickButton,
-              (!preset || isRunning) && styles.presetQuickButtonDisabled,
-            ]}
-            disabled={!preset || isRunning}
-            onPress={() => handleSelectPreset(index)}
-          >
-            <Text style={styles.presetQuickButtonText}>
-              {preset?.name?.trim() || `Preset ${index + 1}`}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {presets.map((preset, index) => {
+          const isActive =
+            !!preset &&
+            preset.workMinutes === settings.workMinutes &&
+            preset.workSeconds === settings.workSeconds &&
+            preset.restMinutes === settings.restMinutes &&
+            preset.restSeconds === settings.restSeconds &&
+            preset.rounds === settings.rounds;
+
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.presetQuickButton,
+                { backgroundColor: isActive ? Colors.primaryBlue : Colors.inactiveGray },
+              ]}
+              disabled={!preset || isRunning}
+              onPress={() => handleSelectPreset(index)}
+            >
+              <Text style={styles.presetQuickButtonText}>
+                {preset?.name?.trim() || `Preset ${index + 1}`}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Main Controls */}
@@ -246,16 +268,34 @@ export default function TimerScreen() {
           style={[styles.button, styles.secondaryButton, styles.settingsButton]}
           onPress={handleSettings}
         >
-          <Text style={styles.buttonText}>Settings</Text>
+          <Text style={[styles.buttonText, styles.settingsButtonText]}>Settings</Text>
         </TouchableOpacity>
 
         {/* Alarm Toggle */}
         <TouchableOpacity
-          style={[styles.button, styles.secondaryButton, styles.alarmButton]}
+          style={[
+            styles.button,
+            styles.secondaryButton,
+            { backgroundColor: alarmEnabled ? Colors.primaryBlue : Colors.inactiveGray },
+          ]}
           onPress={toggleAlarm}
         >
           <Text style={styles.buttonText}>
             {alarmEnabled ? '🔔 ON' : '🔕 OFF'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Vibration Toggle */}
+        <TouchableOpacity
+          style={[
+            styles.button,
+            styles.secondaryButton,
+            { backgroundColor: vibrationEnabled ? Colors.primaryBlue : Colors.inactiveGray },
+          ]}
+          onPress={toggleVibration}
+        >
+          <Text style={styles.buttonText}>
+            {vibrationEnabled ? '📳 ON' : '📴 OFF'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -266,7 +306,7 @@ export default function TimerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -275,7 +315,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 30,
-    color: '#000',
+    color: Colors.textBlack,
   },
   timerContainer: {
     alignItems: 'center',
@@ -295,7 +335,7 @@ const styles = StyleSheet.create({
   roundText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: Colors.textBlack,
     marginBottom: 15,
   },
   presetQuickRow: {
@@ -305,14 +345,10 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   presetQuickButton: {
-    backgroundColor: '#5856D6',
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 10,
     marginHorizontal: 5,
-  },
-  presetQuickButtonDisabled: {
-    backgroundColor: '#C7C7CC',
   },
   presetQuickButtonText: {
     color: '#FFFFFF',
@@ -342,16 +378,17 @@ const styles = StyleSheet.create({
     flex: 0.48,
   },
   secondaryButton: {
-    flex: 0.48,
+    flex: 1,
+    marginHorizontal: 4,
   },
   resetButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: Colors.successGreen,
   },
   settingsButton: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.black,
   },
-  alarmButton: {
-    backgroundColor: '#8E44AD',
+  settingsButtonText: {
+    fontSize: 13,
   },
   buttonText: {
     color: '#FFFFFF',
