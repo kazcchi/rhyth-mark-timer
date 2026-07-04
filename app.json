@@ -11,14 +11,14 @@
       "backgroundColor": "#1F2937"
     },
     "ios": {
-      "bundleIdentifier": "com.kazcchi.rhythmark",
+      "bundleIdentifier": "com.murakamiworks.rhythmark",
       "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
-      "package": "com.kazcchi.rhythmark"
+      "package": "com.murakamiworks.rhythmark"
     },
     "web": {
       "bundler": "metro",
