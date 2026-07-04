@@ -1,6 +1,5 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
-import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 
 // 音源アセット
 const beepDoubleSource = require('../assets/audio/beep_double.wav'); // ピッピッ（フェーズ切替）
@@ -58,13 +57,15 @@ export const playBeepDouble = () => playBeep(beepDoublePlayer);
 // 全ラウンド終了時のピー音
 export const playBeepLong = () => playBeep(beepLongPlayer);
 
-// バイブレーション（Webはハプティクス非対応のため無視）
+// バイブレーション（Webは非対応のため無視）
+// Vibration.vibrate() は着信と同じシステムバイブ（iOSでは約400ms固定・最大強度）。
+// 1発約400msなので、間隔はそれより長くしないと連続した1回の振動に聞こえる
 async function vibrate(pulses: number, intervalMs: number): Promise<void> {
   if (Platform.OS === 'web') return;
   try {
     for (let i = 0; i < pulses; i++) {
       setTimeout(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        Vibration.vibrate();
       }, i * intervalMs);
     }
   } catch (error) {
@@ -72,11 +73,11 @@ async function vibrate(pulses: number, intervalMs: number): Promise<void> {
   }
 }
 
-// フェーズ切替時のダブルバイブ（はっきり2回）
-export const vibrateDouble = () => vibrate(2, 350);
+// フェーズ切替時のダブルバイブ（ブーッ、ブーッ）
+export const vibrateDouble = () => vibrate(2, 700);
 
-// 全ラウンド終了時のトリプルバイブ（はっきり3回）
-export const vibrateLong = () => vibrate(3, 350);
+// 全ラウンド終了時のトリプルバイブ（ブーッ、ブーッ、ブーッ）
+export const vibrateLong = () => vibrate(3, 700);
 
 // タイマー作動中だけ無音をループ再生し、ロック中もアプリを生かしておく
 export async function startBackgroundKeepAlive(): Promise<void> {
