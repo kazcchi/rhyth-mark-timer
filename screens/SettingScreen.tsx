@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -15,6 +16,10 @@ import type { RootStackParamList } from '../App';
 import NumberPicker from '../components/NumberPicker';
 import { useSettings, PRESET_SLOTS } from '../utils/SettingsContext';
 import { Colors } from '../utils/colors';
+
+const SUPPORT_URL = 'https://www.murakamiworks.co.jp/apps/rhythmark/support';
+const PRIVACY_POLICY_URL = 'https://www.murakamiworks.co.jp/apps/rhythmark/privacy';
+const CONTACT_EMAIL = 'info@murakamiworks.co.jp';
 
 type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
 
@@ -47,6 +52,20 @@ export default function SettingScreen() {
   useEffect(() => {
     setPresetNameInputs(presets.map((preset) => preset?.name ?? ''));
   }, [presets]);
+
+  // 外部URL/mailtoをiOS標準の方法で開く。開けない場合はアラートで通知しリンク切れを防ぐ
+  const openExternalLink = async (url: string) => {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) {
+        Alert.alert('Error', 'このリンクを開けませんでした。');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert('Error', 'このリンクを開けませんでした。');
+    }
+  };
 
   const handleLoadPreset = (index: number) => {
     const preset = presets[index];
@@ -231,12 +250,55 @@ export default function SettingScreen() {
               Rounds: {rounds}
             </Text>
             <Text style={styles.previewText}>
-              Total Time: {Math.floor(((workMinutes * 60 + workSeconds) + 
+              Total Time: {Math.floor(((workMinutes * 60 + workSeconds) +
                            (restMinutes * 60 + restSeconds)) * rounds / 60)}:
-              {(((workMinutes * 60 + workSeconds) + 
+              {(((workMinutes * 60 + workSeconds) +
                  (restMinutes * 60 + restSeconds)) * rounds % 60).toString().padStart(2, '0')}
             </Text>
           </View>
+        </View>
+
+        {/* About Section: Support / Privacy Policy / Contact */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About</Text>
+
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => openExternalLink(SUPPORT_URL)}
+          >
+            <View style={styles.linkTextGroup}>
+              <Text style={styles.linkTitle}>サポート</Text>
+              <Text style={styles.linkSubtitle}>不具合報告・お問い合わせはこちら</Text>
+            </View>
+            <Text style={styles.linkChevron}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => openExternalLink(PRIVACY_POLICY_URL)}
+          >
+            <View style={styles.linkTextGroup}>
+              <Text style={styles.linkTitle}>プライバシーポリシー</Text>
+              <Text style={styles.linkSubtitle}>利用者情報の取り扱いについて</Text>
+            </View>
+            <Text style={styles.linkChevron}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.linkRow, styles.linkRowLast]}
+            onPress={() => openExternalLink(`mailto:${CONTACT_EMAIL}`)}
+          >
+            <View style={styles.linkTextGroup}>
+              <Text style={styles.linkTitle}>メールで問い合わせる</Text>
+              <Text style={styles.linkSubtitle}>{CONTACT_EMAIL}</Text>
+            </View>
+            <Text style={styles.linkChevron}>›</Text>
+          </TouchableOpacity>
+          <Text style={styles.linkFootnote}>
+            お問い合わせの送信元メールアドレス・本文の取り扱いは、上記のプライバシーポリシーをご確認ください。
+          </Text>
+
+          <Text style={styles.aboutFooter}>RhythMark ／ 開発・運営: MURAKAMI WORKS,LLC</Text>
         </View>
       </ScrollView>
 
@@ -285,6 +347,46 @@ const styles = StyleSheet.create({
   timePickerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  linkRowLast: {
+    borderBottomWidth: 0,
+  },
+  linkTextGroup: {
+    flex: 1,
+  },
+  linkTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textBlack,
+  },
+  linkSubtitle: {
+    fontSize: 11,
+    color: '#8E8E93',
+    marginTop: 1,
+  },
+  linkChevron: {
+    fontSize: 20,
+    color: '#C7C7CC',
+    marginLeft: 8,
+  },
+  linkFootnote: {
+    fontSize: 10,
+    color: '#8E8E93',
+    marginTop: 8,
+    lineHeight: 14,
+  },
+  aboutFooter: {
+    fontSize: 10,
+    color: '#C7C7CC',
+    marginTop: 8,
+    textAlign: 'center',
   },
   presetRow: {
     flexDirection: 'row',
